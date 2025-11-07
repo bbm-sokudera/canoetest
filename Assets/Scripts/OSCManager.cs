@@ -30,6 +30,53 @@ public class OSCManager : MonoBehaviour
     // <float>はTime.timeの値を格納
     private List<float> sendTimes = new List<float>();
 
+    // 🎛️ ランタイムアクセス用のプロパティ
+    public string RemoteHost
+    {
+        get => remoteHost;
+        set
+        {
+            remoteHost = value;
+            if (_transmitter != null)
+            {
+                _transmitter.RemoteHost = remoteHost;
+                Debug.Log($"OSC Remote Host changed to: {remoteHost}");
+            }
+        }
+    }
+
+    public int RemotePort
+    {
+        get => remotePort;
+        set
+        {
+            remotePort = value;
+            if (_transmitter != null)
+            {
+                _transmitter.RemotePort = remotePort;
+                Debug.Log($"OSC Remote Port changed to: {remotePort}");
+            }
+        }
+    }
+
+    public bool EnableRateLimiter
+    {
+        get => enableRateLimiter;
+        set => enableRateLimiter = value;
+    }
+
+    public float LimitTime
+    {
+        get => limitTime;
+        set => limitTime = Mathf.Max(0.01f, value);
+    }
+
+    public int LimitCount
+    {
+        get => limitCount;
+        set => limitCount = Mathf.Max(1, value);
+    }
+
     // StartとUpdateは空のまま
     void Start()
     {
