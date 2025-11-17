@@ -3,7 +3,7 @@ using Orbbec;
 using OrbbecUnity;
 using UnityEngine;
 using System;
-using System.IO;            
+using System.IO;            
 
 
 public class NormLowSequenceDetector : MonoBehaviour
@@ -13,8 +13,8 @@ public class NormLowSequenceDetector : MonoBehaviour
     [Header("OSC Output")]
     public OSCManager oscManager;
 
-    // --- Depth Settings (NormLow 判定ロジック) ---
-    [Header("Depth Settings (NormLow Range)")]
+    // --- Depth Settings (Physical Range) ---
+    [Header("Depth Settings (Physical Range)")]
     [Tooltip("深度のスケールファクター (例: 2700f)")]
     public float depthScale = 2700f; 
     [Tooltip("深度の最小閾値 (メートル)")]
@@ -22,11 +22,50 @@ public class NormLowSequenceDetector : MonoBehaviour
     [Tooltip("深度の最大閾値 (メートル)")]
     public float maxDepthThreshold = 1.28f; 
     
-    // NormLowの正規化範囲
-    const float NormLowStart = 0.1f;
-    const float NormLowEnd = 0.3f;
+    // --- Normalized Range Settings (0.0 to 1.0) ---
+    [Header("Normalized Depth Range (0.0 to 1.0)")]
+    
+    [Tooltip("NormLowの正規化範囲 (0.0 は minDepthThreshold, 1.0 は maxDepthThreshold に対応)")]
+    [Range(0f, 1f)] public float normLowStart = 0.1f; // 💡 Inspectorで調整可能
+    [Range(0f, 1f)] public float normLowEnd = 0.3f;   // 💡 Inspectorで調整可能
 
-    readonly float DEPTH_RANGE = 0.73f;
+    [Space(10)]
+    [Tooltip("Color Band 1 (High Depth) の正規化範囲")]
+    [Range(0f, 1f)] public float normHighStart = 0.7f; // 💡 追加: High Depth Start
+    [Range(0f, 1f)] public float normHighEnd = 0.96f;  // 💡 追加: High Depth End
+
+    // --- Display Utility ---
+    [Header("Display Utility for Height/Depth Mapping")]
+    [Tooltip("正規化値をメートルに変換する際に使用する最大の高さ/深さ (例: 3.0f)。この値は検出ロジックには影響しません。")]
+    public float maxDisplayHeight = 3.0f; // 💡 ユーザーが入力する「高さの値」
+
+    [Tooltip("正規化値 (0.0-1.0) を、maxDisplayHeightを基準としたメートル値に換算した範囲")]
+    public string NormLowDisplayRange
+    {
+        get
+        {
+            // D = H_Max - (N * H_Max) の計算
+            float startM = maxDisplayHeight - (normLowStart * maxDisplayHeight);
+            float endM = maxDisplayHeight - (normLowEnd * maxDisplayHeight);
+            
+            // 小さい方を先に表示
+            return $"NormLow (H={maxDisplayHeight:F1}m): {Mathf.Min(startM, endM):F2}m to {Mathf.Max(startM, endM):F2}m";
+        }
+    }
+    
+    [Tooltip("正規化値 (0.0-1.0) を、maxDisplayHeightを基準としたメートル値に換算した範囲")]
+    public string NormHighDisplayRange
+    {
+        get
+        {
+            // D = H_Max - (N * H_Max) の計算
+            float startM = maxDisplayHeight - (normHighStart * maxDisplayHeight);
+            float endM = maxDisplayHeight - (normHighEnd * maxDisplayHeight);
+
+            // 小さい方を先に表示
+            return $"NormHigh (H={maxDisplayHeight:F1}m): {Mathf.Min(startM, endM):F2}m to {Mathf.Max(startM, endM):F2}m";
+        }
+    }
 
     [Header("Detection Settings")]
     [Tooltip("NormLowと判定されるために必要な最小ピクセル数")]
@@ -48,6 +87,8 @@ public class NormLowSequenceDetector : MonoBehaviour
         public int width;
         [Tooltip("領域の高さ (ピクセル)")]
         public int height;
+        [Tooltip("検知された時に使用する色")] 
+        public Color detectedColor;             
         [HideInInspector]
         public int index; // 領域のインデックス（0〜3）
     }
@@ -55,25 +96,25 @@ public class NormLowSequenceDetector : MonoBehaviour
     // 監視する領域
     public DepthRegion[] regions = new DepthRegion[4]
     {
-        new DepthRegion { name = "Region 0 (Top-Left)", x = 100, y = 100, width = 50, height = 50, index = 0 },
-        new DepthRegion { name = "Region 1 (Top-Right)", x = 490, y = 100, width = 50, height = 50, index = 1 },
-        new DepthRegion { name = "Region 2 (Bottom-Left)", x = 100, y = 330, width = 50, height = 50, index = 2 },
-        new DepthRegion { name = "Region 3 (Bottom-Right)", x = 490, y = 330, width = 50, height = 50, index = 3 }
+        new DepthRegion { name = "Region 0 (Top-Left)", x = 100, y = 100, width = 50, height = 50, index = 0, detectedColor = Color.red },
+        new DepthRegion { name = "Region 1 (Top-Right)", x = 490, y = 100, width = 50, height = 50, index = 1, detectedColor = Color.green },
+        new DepthRegion { name = "Region 2 (Bottom-Left)", x = 100, y = 330, width = 50, height = 50, index = 2, detectedColor = Color.blue },
+        new DepthRegion { name = "Region 3 (Bottom-Right)", x = 490, y = 330, width = 50, height = 50, index = 3, detectedColor = Color.yellow }
     };
     
     // --- シーケンス追跡用内部状態 ---
     private int _depthWidth = 0;
     private int _depthHeight = 0;
     
-    private int _sequenceStartArea = -1;    // シーケンス開始領域のインデックス
-    private float _sequenceStartTime = 0f;  // シーケンス開始時刻
+    private int _sequenceStartArea = -1;    // シーケンス開始領域のインデックス
+    private float _sequenceStartTime = 0f;  // シーケンス開始時刻
 
     // シーケンス定義マップ: (開始領域, 終了領域, /paddle 番号)
     private readonly (int start, int end, int paddleNum)[] _sequences = {
         (2, 3, 1), // 領域2 -> 領域3 : /paddle 1 右前進
         (0, 1, 2), // 領域0 -> 領域1 : /paddle 2 左前進　
         (3, 2, 3), // 領域3 -> 領域2 : /paddle 3 右後進
-        (1, 0, 4)  // 領域1 -> 領域0 : /paddle 4 左後進
+        (1, 0, 4)  // 領域1 -> 領域0 : /paddle 4 左後進
     };
 
     void Start()
@@ -85,7 +126,7 @@ public class NormLowSequenceDetector : MonoBehaviour
     }
 
     // --- OSC通知メソッド (OSCManagerを経由) ----
-    public void SendPaddleOSC(int paddleNumber)    
+    public void SendPaddleOSC(int paddleNumber)    
     {
         if (oscManager != null)
         {
@@ -145,6 +186,9 @@ public class NormLowSequenceDetector : MonoBehaviour
         int endX = Mathf.Min(frameWidth, region.x + region.width);
         int endY = Mathf.Min(frameHeight, region.y + region.height);
 
+        // 深度範囲を動的に計算 (maxDepthThreshold - minDepthThreshold)
+        float DEPTH_RANGE = maxDepthThreshold - minDepthThreshold;
+
         for (int y = startY; y < endY; y++)
         {
             for (int x = startX; x < endX; x++)
@@ -167,10 +211,10 @@ public class NormLowSequenceDetector : MonoBehaviour
                 }
                 
                 // 4. 深度を正規化 (0.0 から 1.0 の範囲)
-                float normalizedDepth = (depth - minDepthThreshold) / DEPTH_RANGE;
+                float normalizedDepth = (DEPTH_RANGE != 0) ? (depth - minDepthThreshold) / DEPTH_RANGE : 0f;
 
                 // 5. NormLow範囲のチェック
-                if (normalizedDepth >= NormLowStart && normalizedDepth <= NormLowEnd)
+                if (normalizedDepth >= normLowStart && normalizedDepth <= normLowEnd) // 💡 公開フィールドを使用
                 {
                     normLowCount++;
                 }
@@ -257,14 +301,15 @@ public class NormLowSequenceDetector : MonoBehaviour
             Vector3 center = new Vector3(region.x + region.width / 2f, H - (region.y + region.height / 2f), 0);
             Vector3 size = new Vector3(region.width, region.height, 0);
 
-            // シーケンス追跡中の領域は色を変える
+            // シーケンス追跡中の領域は設定されたdetectedColorで点滅させる
             if (Application.isPlaying && _sequenceStartArea == i)
             {
-                // 追跡開始エリア: 赤色で点滅
+                // 追跡開始エリア: 設定されたdetectedColorで点滅
                 float pulse = Mathf.Sin(Time.time * 8f) * 0.5f + 0.5f;
-                Gizmos.color = Color.Lerp(Color.yellow, Color.red, pulse);
+                // ここでregion.detectedColorを使用
+                Gizmos.color = Color.Lerp(Color.white, region.detectedColor, pulse); 
                 Gizmos.DrawCube(center, size);
-                Gizmos.color = Color.white;
+                Gizmos.color = Color.white; // ワイヤーフレームの色は白に戻すか、別の色にする
                 Gizmos.DrawWireCube(center, size);
             }
             else
@@ -275,11 +320,12 @@ public class NormLowSequenceDetector : MonoBehaviour
             }
             
             // 矩形番号の表示 (Sceneビュー上)
-            // 実行時のみ番号を表示（Handlesを使うのが正式だが、ここでは簡易的に）
             #if UNITY_EDITOR
             if (!Application.isPlaying || _sequenceStartArea == i)
             {
-                UnityEditor.Handles.Label(Gizmos.matrix.MultiplyPoint(center), $"R{i}", new GUIStyle { normal = { textColor = Color.yellow } });
+                // 実行中にアクティブな領域の色をラベルにも反映
+                Color labelColor = (Application.isPlaying && _sequenceStartArea == i) ? region.detectedColor : Color.yellow;
+                UnityEditor.Handles.Label(Gizmos.matrix.MultiplyPoint(center), $"R{i}", new GUIStyle { normal = { textColor = labelColor } });
             }
             #endif
         }
