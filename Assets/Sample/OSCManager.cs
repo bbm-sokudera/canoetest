@@ -76,6 +76,7 @@ public class OSCManager : MonoBehaviour
 
     private OSCReceiver _receiver;
     private OSCTransmitter _transmitter;
+    private OSCBind _currentBind;
     private float _previousValue = 0f;
     private bool _isFirstValue = true;
 
@@ -118,7 +119,7 @@ public class OSCManager : MonoBehaviour
     {
         _receiver = gameObject.AddComponent<OSCReceiver>();
         _receiver.LocalPort = receivePort;
-        _receiver.Bind(receiveAddress, OnPositionReceived);
+        _currentBind = _receiver.Bind(receiveAddress, OnPositionReceived);
     }
 
     /// <summary>
@@ -311,11 +312,11 @@ public class OSCManager : MonoBehaviour
     /// </summary>
     public void SetReceiveAddress(string address)
     {
-        if (_receiver != null)
+        if (_receiver != null && _currentBind != null)
         {
-            _receiver.Unbind(receiveAddress, OnPositionReceived);
+            _receiver.Unbind(_currentBind);
             receiveAddress = address;
-            _receiver.Bind(receiveAddress, OnPositionReceived);
+            _currentBind = _receiver.Bind(receiveAddress, OnPositionReceived);
             LogDebug($"Receive address changed to: {address}");
         }
     }
