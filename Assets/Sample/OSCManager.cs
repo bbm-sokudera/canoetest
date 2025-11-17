@@ -298,6 +298,35 @@ public class OSCManager : MonoBehaviour
     #region Public Methods
 
     /// <summary>
+    /// カスタムアドレスに整数値を送信
+    /// </summary>
+    /// <param name="address">OSCアドレス</param>
+    /// <param name="value">送信する整数値</param>
+    public void SendOSC(string address, int value)
+    {
+        if (_transmitter == null)
+        {
+            LogDebug("Transmitter is not initialized");
+            return;
+        }
+
+        var message = new OSCMessage(address);
+        message.AddValue(OSCValue.Int(value));
+        _transmitter.Send(message);
+
+        LogDebug($"[SEND] {address} -> {value}");
+    }
+
+    /// <summary>
+    /// /paddle アドレスに整数値を送信（RegionDetector用）
+    /// </summary>
+    /// <param name="paddleNumber">パドル番号</param>
+    public void SendPaddleOSC(int paddleNumber)
+    {
+        SendOSC("/paddle", paddleNumber);
+    }
+
+    /// <summary>
     /// 監視する軸を変更
     /// </summary>
     public void SetAxis(AxisSelection axis)

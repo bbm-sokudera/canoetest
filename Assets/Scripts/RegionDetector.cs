@@ -78,9 +78,10 @@ public class NormLowSequenceDetector : MonoBehaviour
 
     void Start()
     {
-        if (oscManager != null)
+        // OSCManagerは自動的に初期化されるため、追加の初期化は不要
+        if (oscManager == null)
         {
-            oscManager.init();
+            Debug.LogWarning("OSCManager is not assigned in RegionDetector!");
         }
     }
 
