@@ -783,7 +783,7 @@ MonoBehaviour:
   detector: {fileID: 1591157729}
   oscManager: {fileID: 1594698859}
   showGUI: 1
-  guiScale: 1
+  guiScale: 1.5
 --- !u!4 &2000000002
 Transform:
   m_ObjectHideFlags: 0

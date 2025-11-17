@@ -65,6 +65,9 @@ public class RuntimeParameterController : MonoBehaviour
 
         GUILayout.Label("=== ランタイムパラメータコントローラー ===", GUI.skin.box);
 
+        // GUIスケール設定
+        DrawGUIScaleSettings();
+
         // 深度設定
         DrawDepthSettings();
 
@@ -82,6 +85,47 @@ public class RuntimeParameterController : MonoBehaviour
 
         // 元のマトリックスに戻す
         GUI.matrix = originalMatrix;
+    }
+
+    /// <summary>
+    /// GUIスケール設定
+    /// </summary>
+    private void DrawGUIScaleSettings()
+    {
+        GUILayout.BeginVertical(GUI.skin.box);
+
+        GUILayout.Label($"GUI Scale: {guiScale:F1}x (文字サイズ調整)", GUI.skin.box);
+
+        GUILayout.BeginHorizontal();
+        if (GUILayout.Button("0.8x", GUILayout.Width(60)))
+        {
+            guiScale = 0.8f;
+        }
+        if (GUILayout.Button("1.0x", GUILayout.Width(60)))
+        {
+            guiScale = 1.0f;
+        }
+        if (GUILayout.Button("1.5x", GUILayout.Width(60)))
+        {
+            guiScale = 1.5f;
+        }
+        if (GUILayout.Button("2.0x", GUILayout.Width(60)))
+        {
+            guiScale = 2.0f;
+        }
+        if (GUILayout.Button("2.5x", GUILayout.Width(60)))
+        {
+            guiScale = 2.5f;
+        }
+        GUILayout.EndHorizontal();
+
+        GUILayout.Space(5);
+
+        guiScale = GUILayout.HorizontalSlider(guiScale, 0.5f, 3.0f);
+
+        GUILayout.EndVertical();
+
+        GUILayout.Space(10);
     }
 
     /// <summary>
@@ -266,6 +310,20 @@ public class RuntimeParameterController : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.H))
         {
             showGUI = !showGUI;
+        }
+
+        // +キーでGUIを拡大
+        if (Input.GetKeyDown(KeyCode.Plus) || Input.GetKeyDown(KeyCode.KeypadPlus))
+        {
+            guiScale = Mathf.Min(3.0f, guiScale + 0.1f);
+            Debug.Log($"GUI Scale: {guiScale:F1}x");
+        }
+
+        // -キーでGUIを縮小
+        if (Input.GetKeyDown(KeyCode.Minus) || Input.GetKeyDown(KeyCode.KeypadMinus))
+        {
+            guiScale = Mathf.Max(0.5f, guiScale - 0.1f);
+            Debug.Log($"GUI Scale: {guiScale:F1}x");
         }
     }
 }
