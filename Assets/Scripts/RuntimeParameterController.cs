@@ -58,10 +58,14 @@ public class RuntimeParameterController : MonoBehaviour
         Matrix4x4 originalMatrix = GUI.matrix;
         GUI.matrix = Matrix4x4.Scale(new Vector3(guiScale, guiScale, 1.0f));
 
-        // メインウィンドウ
-        GUILayout.BeginArea(new Rect(10, 10, 400 / guiScale, Screen.height / guiScale - 20));
+        // メインウィンドウ（スケール適用後の座標系で指定）
+        // 固定幅を使用し、スケールが大きくなっても十分な表示領域を確保
+        float panelWidth = 450;
+        float panelHeight = (Screen.height - 40) / guiScale;
 
-        scrollPosition = GUILayout.BeginScrollView(scrollPosition, GUILayout.Width(400 / guiScale), GUILayout.Height(Screen.height / guiScale - 20));
+        GUILayout.BeginArea(new Rect(10 / guiScale, 10 / guiScale, panelWidth, panelHeight));
+
+        scrollPosition = GUILayout.BeginScrollView(scrollPosition, GUILayout.Width(panelWidth), GUILayout.Height(panelHeight));
 
         GUILayout.Label("=== ランタイムパラメータコントローラー ===", GUI.skin.box);
 
