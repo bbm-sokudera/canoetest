@@ -53,6 +53,23 @@ OSCManagerは、x, y, z座標を受信して、選択した軸の値の変化方
 - **Positive Increase Value**: 正の値が増加した時に送信する値（デフォルト: 2）
 - **Positive Decrease Value**: 正の値が減少した時に送信する値（デフォルト: 3）
 
+#### Conditional Axis Settings（条件軸設定）NEW!
+- **Enable Conditional Axis**: 条件軸を有効にする（デフォルト: OFF）
+- **Conditional Axis**: 条件軸の選択（X, Y, Z）（デフォルト: Z）
+- **Conditional Axis Min**: 条件軸の最小値（デフォルト: -1.0）
+- **Conditional Axis Max**: 条件軸の最大値（デフォルト: 1.0）
+
+**条件軸とは？**
+メイン監視軸とは別の軸が指定範囲内にある場合のみ、メイン軸の変化を検出する機能です。
+
+**例**：
+- メイン軸: X（変化を監視）
+- 条件軸: Z（範囲チェック）
+- 条件範囲: -1.0 ～ 1.0
+
+→ Zが-1.0～1.0の範囲内にある時だけ、Xの変化を検出して値を送信します。
+→ Zが範囲外の時は、Xの変化を無視します。
+
 #### Advanced Settings（詳細設定）
 - **Change Threshold**: 値の変化がこの閾値以下の場合は無視（ノイズ除去、デフォルト: 0.001）
 - **Enable Debug Log**: デバッグログを出力するか（デフォルト: true）
@@ -65,6 +82,7 @@ Playボタンを押してシーンを実行します。
 
 ### Pythonテストスクリプトを使用
 
+#### 基本機能のテスト
 ```bash
 pip install python-osc
 python Assets/Sample/osc_manager_test.py
@@ -79,6 +97,21 @@ python Assets/Sample/osc_manager_test.py
 5. **サインカーブテスト**: 連続的な値の変化を確認
 6. **カスタム値テスト**: カスタム送信値の動作確認
 7. **対話モード**: 手動でテスト
+
+#### 条件軸機能のテスト NEW!
+```bash
+pip install python-osc
+python Assets/Sample/osc_conditional_axis_test.py
+```
+
+条件軸テストスクリプトには以下のテストが含まれています：
+
+1. **条件軸が範囲内の場合**: 条件軸が範囲内にある時、メイン軸の変化を検出
+2. **条件軸が範囲外の場合**: 条件軸が範囲外の時、メイン軸の変化を無視
+3. **条件軸の境界値テスト**: 境界値（min, max）が正しく処理される
+4. **条件軸が範囲をまたぐ場合**: 条件軸が範囲内外を行き来する
+5. **異なる条件軸の組み合わせ**: メイン軸と条件軸の様々な組み合わせ
+6. **対話モード**: 手動でテスト
 
 ## 使用例
 
@@ -127,6 +160,60 @@ Settings:
 - Positive Decrease Value: 65  // F
 
 音楽アプリケーションに異なるノート番号を送信
+```
+
+### 例4: 条件軸を使用した高度な制御 NEW!
+
+**ケース1: 特定の高さでのみ水平移動を検出**
+```
+Settings:
+- Selected Axis: X（水平方向の移動を監視）
+- Enable Conditional Axis: ON
+- Conditional Axis: Y（高さ）
+- Conditional Axis Min: 0.5
+- Conditional Axis Max: 1.5
+
+動作:
+→ Y（高さ）が0.5～1.5の範囲内にある時のみ、X（水平移動）を検出
+→ 手が適切な高さにある時だけジェスチャーを認識
+
+例:
+(x, y, z) = (-1.0, 1.0, 0.0) → Y=1.0は範囲内
+(x, y, z) = (-2.0, 1.0, 0.0) → Xの変化を検出 → 送信
+
+(x, y, z) = (-1.0, 2.0, 0.0) → Y=2.0は範囲外
+(x, y, z) = (-2.0, 2.0, 0.0) → Xの変化を無視 → 送信しない
+```
+
+**ケース2: 特定の深度範囲でのみ動作を検出**
+```
+Settings:
+- Selected Axis: X（左右の動き）
+- Enable Conditional Axis: ON
+- Conditional Axis: Z（奥行き/深度）
+- Conditional Axis Min: -2.0
+- Conditional Axis Max: -0.5
+
+動作:
+→ Z（深度）が-2.0～-0.5の範囲内（カメラから適切な距離）にある時のみ、
+  X（左右の動き）を検出
+
+用途: 深度カメラで、特定の距離範囲内の動きだけを認識
+```
+
+**ケース3: Y軸の動きをZ軸の条件で制御**
+```
+Settings:
+- Selected Axis: Y（上下の動き）
+- Enable Conditional Axis: ON
+- Conditional Axis: Z（前後の位置）
+- Conditional Axis Min: -0.5
+- Conditional Axis Max: 0.5
+
+動作:
+→ 中央付近（Z軸が-0.5～0.5）にいる時のみ、Y軸の上下動作を検出
+
+用途: 特定のゾーン内でのみジェスチャーを有効化
 ```
 
 ## 動作の詳細

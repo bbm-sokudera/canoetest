@@ -59,6 +59,19 @@ public class OSCManager : MonoBehaviour
     [Tooltip("正の値が減少した時（0に近づいた時）に送信する値")]
     public int positiveDecreaseValue = 3;
 
+    [Header("Conditional Axis Settings")]
+    [Tooltip("条件軸を有効にする（チェックONで、指定した軸が範囲内の時のみメイン軸の変化を検出）")]
+    public bool enableConditionalAxis = false;
+
+    [Tooltip("条件軸の選択（この軸が範囲内にある時のみメイン軸の変化を検出）")]
+    public AxisSelection conditionalAxis = AxisSelection.Z;
+
+    [Tooltip("条件軸の最小値（この値以上の時に反応）")]
+    public float conditionalAxisMin = -1.0f;
+
+    [Tooltip("条件軸の最大値（この値以下の時に反応）")]
+    public float conditionalAxisMax = 1.0f;
+
     [Header("Advanced Settings")]
     [Tooltip("値の変化がこの閾値以下の場合は無視する（ノイズ除去）")]
     public float changeThreshold = 0.001f;
@@ -152,8 +165,23 @@ public class OSCManager : MonoBehaviour
         float y = message.Values[1].FloatValue;
         float z = message.Values[2].FloatValue;
 
+        // 条件軸のチェック（有効な場合）
+        if (enableConditionalAxis)
+        {
+            float conditionalValue = GetSelectedAxisValue(x, y, z, conditionalAxis);
+
+            // 条件軸が範囲外の場合は処理をスキップ
+            if (conditionalValue < conditionalAxisMin || conditionalValue > conditionalAxisMax)
+            {
+                LogDebug($"Conditional axis ({conditionalAxis}) value {conditionalValue:F3} is out of range [{conditionalAxisMin:F3}, {conditionalAxisMax:F3}]. Skipping processing.");
+                return;
+            }
+
+            LogDebug($"Conditional axis ({conditionalAxis}) value {conditionalValue:F3} is within range [{conditionalAxisMin:F3}, {conditionalAxisMax:F3}]. Processing...");
+        }
+
         // 選択された軸の値を取得
-        float currentValue = GetSelectedAxisValue(x, y, z);
+        float currentValue = GetSelectedAxisValue(x, y, z, selectedAxis);
 
         LogDebug($"Received position: ({x:F3}, {y:F3}, {z:F3}) -> Selected axis ({selectedAxis}): {currentValue:F3}");
 
@@ -174,7 +202,15 @@ public class OSCManager : MonoBehaviour
     /// </summary>
     private float GetSelectedAxisValue(float x, float y, float z)
     {
-        switch (selectedAxis)
+        return GetSelectedAxisValue(x, y, z, selectedAxis);
+    }
+
+    /// <summary>
+    /// 指定された軸の値を取得
+    /// </summary>
+    private float GetSelectedAxisValue(float x, float y, float z, AxisSelection axis)
+    {
+        switch (axis)
         {
             case AxisSelection.X:
                 return x;
@@ -379,11 +415,23 @@ public class OSCManager : MonoBehaviour
     /// </summary>
     public string GetConfigInfo()
     {
-        return $"Axis: {selectedAxis}\n" +
-               $"Negative: Increase={negativeIncreaseValue}, Decrease={negativeDecreaseValue}\n" +
-               $"Positive: Increase={positiveIncreaseValue}, Decrease={positiveDecreaseValue}\n" +
-               $"Receive: {receiveAddress}@{receivePort}\n" +
-               $"Transmit: {transmitAddress}@{transmitHost}:{transmitPort}";
+        string info = $"Axis: {selectedAxis}\n" +
+                      $"Negative: Increase={negativeIncreaseValue}, Decrease={negativeDecreaseValue}\n" +
+                      $"Positive: Increase={positiveIncreaseValue}, Decrease={positiveDecreaseValue}\n";
+
+        if (enableConditionalAxis)
+        {
+            info += $"Conditional: {conditionalAxis} in range [{conditionalAxisMin:F2}, {conditionalAxisMax:F2}]\n";
+        }
+        else
+        {
+            info += "Conditional: Disabled\n";
+        }
+
+        info += $"Receive: {receiveAddress}@{receivePort}\n" +
+                $"Transmit: {transmitAddress}@{transmitHost}:{transmitPort}";
+
+        return info;
     }
 
     #endregion
