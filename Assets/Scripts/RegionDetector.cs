@@ -3,7 +3,8 @@ using Orbbec;
 using OrbbecUnity;
 using UnityEngine;
 using System;
-using System.IO;            
+using System.IO;
+using extOSC;
 
 
 public class NormLowSequenceDetector : MonoBehaviour
@@ -12,6 +13,17 @@ public class NormLowSequenceDetector : MonoBehaviour
     public OrbbecFrameSource frameSource;
     [Header("OSC Output")]
     public OSCManager oscManager;
+
+    [Header("Input Source Selection")]
+    [Tooltip("FrameSourceから深度データを使用する（チェックを外すとOSC入力を使用）")]
+    public bool useFrameSource = true;
+
+    [Header("OSC Input Settings")]
+    [Tooltip("OSC入力を受信するポート番号")]
+    public int oscReceivePort = 7003;
+
+    [Tooltip("領域アクティブ化を受信するOSCアドレス")]
+    public string regionActiveAddress = "/region/active";
 
     // --- Depth Settings (NormLow 判定ロジック) ---
     [Header("Depth Settings (NormLow Range)")]
@@ -64,17 +76,23 @@ public class NormLowSequenceDetector : MonoBehaviour
     // --- シーケンス追跡用内部状態 ---
     private int _depthWidth = 0;
     private int _depthHeight = 0;
-    
+
     private int _sequenceStartArea = -1;    // シーケンス開始領域のインデックス
     private float _sequenceStartTime = 0f;  // シーケンス開始時刻
 
     // シーケンス定義マップ: (開始領域, 終了領域, /paddle 番号)
     private readonly (int start, int end, int paddleNum)[] _sequences = {
         (2, 3, 1), // 領域2 -> 領域3 : /paddle 1 右前進
-        (0, 1, 2), // 領域0 -> 領域1 : /paddle 2 左前進　
+        (0, 1, 2), // 領域0 -> 領域1 : /paddle 2 左前進
         (3, 2, 3), // 領域3 -> 領域2 : /paddle 3 右後進
         (1, 0, 4)  // 領域1 -> 領域0 : /paddle 4 左後進
     };
+
+    // OSC入力用
+    private OSCReceiver _oscReceiver;
+    private List<int> _oscActiveRegions = new List<int>();
+    private float _lastOscReceiveTime = 0f;
+    private const float OSC_TIMEOUT = 0.2f; // OSC入力のタイムアウト（秒）
 
     void Start()
     {
@@ -82,6 +100,60 @@ public class NormLowSequenceDetector : MonoBehaviour
         if (oscManager == null)
         {
             Debug.LogWarning("OSCManager is not assigned in RegionDetector!");
+        }
+
+        // OSC入力を使用する場合、レシーバーを初期化
+        if (!useFrameSource)
+        {
+            InitializeOSCReceiver();
+        }
+    }
+
+    void OnDestroy()
+    {
+        if (_oscReceiver != null)
+        {
+            _oscReceiver.Close();
+        }
+    }
+
+    /// <summary>
+    /// OSC受信機能の初期化
+    /// </summary>
+    private void InitializeOSCReceiver()
+    {
+        _oscReceiver = gameObject.AddComponent<OSCReceiver>();
+        _oscReceiver.LocalPort = oscReceivePort;
+        _oscReceiver.Bind(regionActiveAddress, OnRegionActiveReceived);
+        Debug.Log($"[RegionDetector] OSC Receiver initialized on port {oscReceivePort}, address: {regionActiveAddress}");
+    }
+
+    /// <summary>
+    /// OSCで領域アクティブ化メッセージを受信
+    /// 形式: /region/active [領域番号]
+    /// 例: /region/active 0 → 領域0がアクティブ
+    /// </summary>
+    private void OnRegionActiveReceived(OSCMessage message)
+    {
+        if (message.Values.Count > 0)
+        {
+            int regionIndex = message.Values[0].IntValue;
+
+            // 有効な領域番号かチェック
+            if (regionIndex >= 0 && regionIndex < regions.Length)
+            {
+                // 既にリストにない場合のみ追加
+                if (!_oscActiveRegions.Contains(regionIndex))
+                {
+                    _oscActiveRegions.Add(regionIndex);
+                    _lastOscReceiveTime = Time.time;
+                    Debug.Log($"[RegionDetector] OSC input: Region {regionIndex} activated");
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"[RegionDetector] Invalid region index received via OSC: {regionIndex}");
+            }
         }
     }
 
@@ -96,37 +168,67 @@ public class NormLowSequenceDetector : MonoBehaviour
 
     void Update()
     {
-        var obDepthFrame = frameSource.GetDepthFrame();
-
-        if (obDepthFrame == null || obDepthFrame.width == 0 || obDepthFrame.height == 0 || obDepthFrame.data == null)
-        {
-            return;
-        }
-        if (obDepthFrame.frameType != FrameType.OB_FRAME_DEPTH)
-        {
-            return;
-        }
-
-        // フレームサイズの更新
-        if (obDepthFrame.width != _depthWidth || obDepthFrame.height != _depthHeight)
-        {
-            _depthWidth = obDepthFrame.width;
-            _depthHeight = obDepthFrame.height;
-        }
-
-        // どの領域がNormLowでアクティブかを判定
-        bool[] isRegionActive = new bool[regions.Length];
         List<int> currentActiveRegions = new List<int>();
 
-        for (int i = 0; i < regions.Length; i++)
+        // FrameSourceを使用する場合
+        if (useFrameSource)
         {
-            int normLowCount = CountNormLowPixelsInRegion(ref regions[i], obDepthFrame.data, _depthWidth, _depthHeight);
-            
-            if (normLowCount >= minNormLowPixelsToTrigger)
+            if (frameSource == null)
             {
-                isRegionActive[i] = true;
-                currentActiveRegions.Add(i);
+                Debug.LogWarning("[RegionDetector] FrameSource is not assigned!");
+                return;
             }
+
+            var obDepthFrame = frameSource.GetDepthFrame();
+
+            if (obDepthFrame == null || obDepthFrame.width == 0 || obDepthFrame.height == 0 || obDepthFrame.data == null)
+            {
+                return;
+            }
+            if (obDepthFrame.frameType != FrameType.OB_FRAME_DEPTH)
+            {
+                return;
+            }
+
+            // フレームサイズの更新
+            if (obDepthFrame.width != _depthWidth || obDepthFrame.height != _depthHeight)
+            {
+                _depthWidth = obDepthFrame.width;
+                _depthHeight = obDepthFrame.height;
+            }
+
+            // どの領域がNormLowでアクティブかを判定
+            for (int i = 0; i < regions.Length; i++)
+            {
+                int normLowCount = CountNormLowPixelsInRegion(ref regions[i], obDepthFrame.data, _depthWidth, _depthHeight);
+
+                if (normLowCount >= minNormLowPixelsToTrigger)
+                {
+                    currentActiveRegions.Add(i);
+                }
+            }
+        }
+        // OSC入力を使用する場合
+        else
+        {
+            // OSCレシーバーが初期化されていない場合は初期化
+            if (_oscReceiver == null)
+            {
+                InitializeOSCReceiver();
+            }
+
+            // OSC入力のタイムアウトチェック
+            if (Time.time - _lastOscReceiveTime > OSC_TIMEOUT)
+            {
+                // タイムアウト: アクティブリストをクリア
+                _oscActiveRegions.Clear();
+            }
+
+            // OSCから受信したアクティブ領域を使用
+            currentActiveRegions = new List<int>(_oscActiveRegions);
+
+            // 処理後、OSCアクティブリストをクリア（次のフレームまで保持しない）
+            _oscActiveRegions.Clear();
         }
 
         // シーケンス検知ロジックを実行
