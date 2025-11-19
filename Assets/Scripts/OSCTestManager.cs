@@ -3,7 +3,7 @@ using extOSC;
 using System.Collections.Generic;
 using System.Linq;
 
-public class OSCManager : MonoBehaviour
+public class OSCTestManager : MonoBehaviour
 {
     // 💡 Inspectorで設定可能にする新しいフィールド
     [Header("OSC Transmitter Settings")]

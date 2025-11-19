@@ -200,7 +200,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &926758787
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -509,13 +509,16 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1591157728}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 088092bc02950c24c815c0a67b986d57, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   frameSource: {fileID: 1241628002}
-  oscManager: {fileID: 1594698859}
+  oscManager: {fileID: 0}
+  useFrameSource: 0
+  oscReceivePort: 7003
+  regionActiveAddress: /region/active
   depthScale: 2700
   minDepthThreshold: 0.5
   maxDepthThreshold: 1.28
@@ -570,7 +573,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1594698860}
-  - component: {fileID: 1594698859}
+  - component: {fileID: 1594698861}
   m_Layer: 0
   m_Name: OSCManager
   m_TagString: Untagged
@@ -578,23 +581,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1594698859
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1594698858}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 41a6b8c524f7394458da85c768cff681, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  remoteHost: 192.168.1.15
-  remotePort: 8000
-  enableRateLimiter: 1
-  limitTime: 1
-  limitCount: 3
 --- !u!4 &1594698860
 Transform:
   m_ObjectHideFlags: 0
@@ -610,6 +596,38 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1594698861
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1594698858}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  receivePort: 7001
+  receiveAddress: /position
+  transmitHost: 192.168.1.20
+  transmitPort: 7002
+  transmitAddress: /direction
+  xCenterPosition: 0
+  yVectorMagnitudeThreshold: 0.1
+  leftForwardValue: 0
+  rightForwardValue: 2
+  leftBackwardValue: 1
+  rightBackwardValue: 3
+  yAngleThreshold: 45
+  enableDebugLog: 1
+  showGizmo: 1
+  onValueSent:
+    m_PersistentCalls:
+      m_Calls: []
+  onDirectionDetected:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &1722741024
 GameObject:
   m_ObjectHideFlags: 0
