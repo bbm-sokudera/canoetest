@@ -74,10 +74,10 @@ public class OSCXPositionYVectorManager : MonoBehaviour
     public int leftForwardValue = 0;
 
     [Tooltip("右＋前方向の時に送信する値")]
-    public int rightForwardValue = 1;
+    public int rightForwardValue = 2;
 
     [Tooltip("左＋後方向の時に送信する値")]
-    public int leftBackwardValue = 2;
+    public int leftBackwardValue = 1;
 
     [Tooltip("右＋後方向の時に送信する値")]
     public int rightBackwardValue = 3;

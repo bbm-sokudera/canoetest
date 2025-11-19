@@ -69,8 +69,8 @@ class XPositionYVectorTester:
         """値を方向名に変換"""
         mapping = {
             0: "Left Forward",
-            1: "Right Forward",
-            2: "Left Backward",
+            2: "Right Forward",
+            1: "Left Backward",
             3: "Right Backward"
         }
         return mapping.get(value, "Unknown")
@@ -125,7 +125,7 @@ class XPositionYVectorTester:
         print("テスト2: 右＋前方向")
         print("="*70)
         print("期待される動作:")
-        print("  - X >= 0 (右側) かつ Y+ (前方向) → 1 (Right Forward)")
+        print("  - X >= 0 (右側) かつ Y+ (前方向) → 2 (Right Forward)")
         print("="*70)
 
         self.received_values.clear()
@@ -139,10 +139,10 @@ class XPositionYVectorTester:
         time.sleep(0.5)
 
         print(f"\n結果: 受信した値 = {self.received_values}")
-        if 1 in self.received_values:
-            print("✓ テスト成功! Right Forward (1) が検出されました")
+        if 2 in self.received_values:
+            print("✓ テスト成功! Right Forward (2) が検出されました")
         else:
-            print(f"✗ テスト失敗: 期待値 1 が受信されませんでした")
+            print(f"✗ テスト失敗: 期待値 2 が受信されませんでした")
 
     def test_left_backward(self):
         """左＋後方向のテスト"""
@@ -150,7 +150,7 @@ class XPositionYVectorTester:
         print("テスト3: 左＋後方向")
         print("="*70)
         print("期待される動作:")
-        print("  - X < 0 (左側) かつ Y- (後方向) → 2 (Left Backward)")
+        print("  - X < 0 (左側) かつ Y- (後方向) → 1 (Left Backward)")
         print("="*70)
 
         self.received_values.clear()
@@ -164,10 +164,10 @@ class XPositionYVectorTester:
         time.sleep(0.5)
 
         print(f"\n結果: 受信した値 = {self.received_values}")
-        if 2 in self.received_values:
-            print("✓ テスト成功! Left Backward (2) が検出されました")
+        if 1 in self.received_values:
+            print("✓ テスト成功! Left Backward (1) が検出されました")
         else:
-            print(f"✗ テスト失敗: 期待値 2 が受信されませんでした")
+            print(f"✗ テスト失敗: 期待値 1 が受信されませんでした")
 
     def test_right_backward(self):
         """右＋後方向のテスト"""
@@ -251,7 +251,7 @@ class XPositionYVectorTester:
         time.sleep(0.5)
 
         print(f"\n結果: 受信した値 = {self.received_values}")
-        print("期待: 0 (Left Forward) と 1 (Right Forward) が含まれる")
+        print("期待: 0 (Left Forward) と 2 (Right Forward) が含まれる")
 
     def test_zigzag(self):
         """ジグザグ移動のテスト"""
@@ -276,7 +276,7 @@ class XPositionYVectorTester:
             time.sleep(0.4)
 
         print(f"\n結果: 受信した値 = {self.received_values}")
-        print("期待: [0, 2, 1, 3] または類似の組み合わせ")
+        print("期待: [0, 1, 2, 3] または類似の組み合わせ")
 
     def interactive_mode(self):
         """対話モード"""
@@ -381,8 +381,8 @@ def main():
     print("   - X Center Position: 0")
     print("   - Y Vector Magnitude Threshold: 0.1")
     print("   - Left Forward Value: 0")
-    print("   - Right Forward Value: 1")
-    print("   - Left Backward Value: 2")
+    print("   - Right Forward Value: 2")
+    print("   - Left Backward Value: 1")
     print("   - Right Backward Value: 3")
     print("   - Transmit Host: 127.0.0.1")
     print("   - Transmit Port: 7002")
@@ -400,8 +400,8 @@ def main():
     try:
         print("\nテストメニュー:")
         print("1. 左＋前方向テスト (0)")
-        print("2. 右＋前方向テスト (1)")
-        print("3. 左＋後方向テスト (2)")
+        print("2. 右＋前方向テスト (2)")
+        print("3. 左＋後方向テスト (1)")
         print("4. 右＋後方向テスト (3)")
         print("5. Y軸ベクトル閾値テスト")
         print("6. X軸中心を跨ぐ移動テスト")

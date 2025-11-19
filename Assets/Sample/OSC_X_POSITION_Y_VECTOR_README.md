@@ -16,8 +16,8 @@ OSCXPositionYVectorManagerは、**X軸の位置（左右）**と**Y軸のベク�
 | X位置 | Y方向 | 送信値 | 説明 |
 |-------|-------|--------|------|
 | 左 (X < 0) | 前 (Y+) | 0 | Left Forward |
-| 右 (X ≥ 0) | 前 (Y+) | 1 | Right Forward |
-| 左 (X < 0) | 後 (Y-) | 2 | Left Backward |
+| 右 (X ≥ 0) | 前 (Y+) | 2 | Right Forward |
+| 左 (X < 0) | 後 (Y-) | 1 | Left Backward |
 | 右 (X ≥ 0) | 後 (Y-) | 3 | Right Backward |
 
 ## 動作イメージ
@@ -34,8 +34,8 @@ OSCXPositionYVectorManagerは、**X軸の位置（左右）**と**Y軸のベク�
 
 例:
 位置 (-1, 0, 0) で Y+ 方向に移動 → 0 (Left Forward)
-位置 (1, 0, 0) で Y+ 方向に移動 → 1 (Right Forward)
-位置 (-1, 0, 0) で Y- 方向に移動 → 2 (Left Backward)
+位置 (1, 0, 0) で Y+ 方向に移動 → 2 (Right Forward)
+位置 (-1, 0, 0) で Y- 方向に移動 → 1 (Left Backward)
 位置 (1, 0, 0) で Y- 方向に移動 → 3 (Right Backward)
 ```
 
@@ -66,8 +66,8 @@ OSCXPositionYVectorManagerは、**X軸の位置（左右）**と**Y軸のベク�
 
 #### Direction Value Settings（方向値設定）
 - **Left Forward Value**: 左＋前方向の時に送信する値（デフォルト: 0）
-- **Right Forward Value**: 右＋前方向の時に送信する値（デフォルト: 1）
-- **Left Backward Value**: 左＋後方向の時に送信する値（デフォルト: 2）
+- **Right Forward Value**: 右＋前方向の時に送信する値（デフォルト: 2）
+- **Left Backward Value**: 左＋後方向の時に送信する値（デフォルト: 1）
 - **Right Backward Value**: 右＋後方向の時に送信する値（デフォルト: 3）
 
 #### Advanced Settings（詳細設定）
@@ -105,8 +105,8 @@ Playボタンを押してシーンを実行します。
    ↓
 5. X位置とY方向を組み合わせる
    - Left + Forward → 0
-   - Right + Forward → 1
-   - Left + Backward → 2
+   - Right + Forward → 2
+   - Left + Backward → 1
    - Right + Backward → 3
    ↓
 6. 対応する値を送信
@@ -126,10 +126,10 @@ Playボタンを押してシーンを実行します。
 使用例:
 (x, y, z) = (-2, 0, 0)  # 左側に位置
 → Y+方向に移動 → 0 (Left Forward)
-→ Y-方向に移動 → 2 (Left Backward)
+→ Y-方向に移動 → 1 (Left Backward)
 
 (x, y, z) = (2, 0, 0)  # 右側に位置
-→ Y+方向に移動 → 1 (Right Forward)
+→ Y+方向に移動 → 2 (Right Forward)
 → Y-方向に移動 → 3 (Right Backward)
 ```
 
@@ -139,8 +139,8 @@ Playボタンを押してシーンを実行します。
 設定:
 - X Center Position: 0
 - Left Forward Value: 0 (左パドル前進)
-- Left Backward Value: 2 (左パドル後退)
-- Right Forward Value: 1 (右パドル前進)
+- Left Backward Value: 1 (左パドル後退)
+- Right Forward Value: 2 (右パドル前進)
 - Right Backward Value: 3 (右パドル後退)
 
 用途: カヌーやボートのパドル操作シミュレーション
@@ -158,8 +158,8 @@ Playボタンを押してシーンを実行します。
 - Y Vector Magnitude Threshold: 0.2
 
 動作:
-左ゾーン: 上スワイプ→0、下スワイプ→2
-右ゾーン: 上スワイプ→1、下スワイプ→3
+左ゾーン: 上スワイプ→0、下スワイプ→1
+右ゾーン: 上スワイプ→2、下スワイプ→3
 
 用途: 左右で異なる機能を持つジェスチャーUI
 ```
@@ -189,8 +189,8 @@ python Assets/Sample/osc_x_position_y_vector_test.py
 
 テストメニュー:
 1. **左＋前方向テスト (0)**
-2. **右＋前方向テスト (1)**
-3. **左＋後方向テスト (2)**
+2. **右＋前方向テスト (2)**
+3. **左＋後方向テスト (1)**
 4. **右＋後方向テスト (3)**
 5. **Y軸ベクトル閾値テスト**
 6. **X軸中心を跨ぐ移動テスト**
@@ -213,7 +213,7 @@ python Assets/Sample/osc_x_position_y_vector_test.py
 
 コマンド> forward    # Y+0.3移動
 >>> [SEND] /position (1.000, 0.600, 0.000)
-<<< [RECEIVED] /direction = 1 (Right Forward)
+<<< [RECEIVED] /direction = 2 (Right Forward)
 ```
 
 ## Gizmo表示
